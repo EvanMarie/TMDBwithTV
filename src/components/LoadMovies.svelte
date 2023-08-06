@@ -1,15 +1,16 @@
 <script>
-	import { fetchMovies, fetchGenres } from '../lib/fetchFilms';
+
+	let selectedMovie=""
+	// import necessary functions and stores
 	import { truncateText } from '../lib/utils';
 	import PageContainer from './PageContainer.svelte';
-	import { filterStore } from '../lib/store.js';
+	import { dataTypeStore, filterStore } from '../lib/store.js';
 	import { onMount } from 'svelte';
 	import Navigation from './Navigation.svelte';
 	import { selectedGenreName } from '../lib/store'; // Import the selectedGenreName store
+	import { getNextColor, handleGenreChange, findGenreName, formatFilter, closeModal, formatDate, roundPopularity, loadMedia } from '../lib/utils.js';
 
-import { getNextColor, handleGenreChange, findGenreName, formatFilter, closeModal, formatDate, roundPopularity, loadMedia } from '../lib/utils.js';
-
-	let movies = [];
+	let media = []; // This variable will now store both movies and tv shows
 	let genres = [];
 	let filter;
 	let selectedGenre = '';
@@ -20,59 +21,45 @@ import { getNextColor, handleGenreChange, findGenreName, formatFilter, closeModa
 		selectedGenreNameValue = value;
 	});
 
-	let selectedMovie = null;
+	// Subscribe to the dataTypeStore to get the current data type (movies or tv shows)
+	let dataType;
+	dataTypeStore.subscribe((value) => {
+		dataType = value;
+		loadMedia(filter); // Reload the media when the data type changes
+	});
+
+	let selectedMedia = null; // This variable will now represent the selected movie or tv show
 
 	$: filterStore.subscribe((value) => {
 		filter = value;
-		loadMovies(filter);
+		loadMedia(filter);
 	});
 
 	onMount(() => {
 		// Fetch genres when the component is mounted
-		fetchGenres().then((results) => {
+		fetchGenres(dataType).then((results) => {
 			genres = results;
 		});
 	});
 
-	function loadMovies(endpoint, queryParameters = '', searchQuery = '') {
-		const genreQuery = selectedGenre ? `&with_genres=${selectedGenre}` : '';
-		fetchMovies(endpoint, queryParameters + genreQuery, searchQuery).then((results) => {
-			movies = results.map((movie) => {
-				const rating = Math.round(movie.vote_average * 10);
-				return {
-					...movie,
-					shortOverview: truncateText(movie.overview, 70),
-					color: getNextColor(),
-					rating // This is the rounded rating
-				};
-			});
-			console.log(movies[0]);
-		});
+const DEFAULT_IMAGE_URL = '/noimage.png';
+
+	function handleSearchChange(searchQuery) {
+	  fetchData(dataType, 'search', '', searchQuery).then((results) => {
+	    media = results.map((item) => {
+	      const rating = Math.round(item.vote_average * 10);
+	      return {
+	        ...item,
+	        shortOverview: truncateText(item.overview, 70),
+	        color: getNextColor(),
+	        rating // This is the rounded rating
+	      };
+	    });
+	  });
 	}
-
-function handleSearchChange(searchQuery) {
-  fetchSearchResults(searchQuery, 'movie').then((results) => {
-    movies = results.map((movie) => {
-      const rating = Math.round(movie.vote_average * 10);
-      return {
-        ...movie,
-        shortOverview: truncateText(movie.overview, 70),
-        color: getNextColor(),
-        rating // This is the rounded rating
-      };
-    });
-  });
-}
-
-
-
-
-
-
-	const DEFAULT_IMAGE_URL = '/noimage.png';
-
-
 </script>
+
+
 
 <PageContainer>
 	<Navigation
@@ -85,7 +72,7 @@ function handleSearchChange(searchQuery) {
 
 	<ul>
 		<div class="card-container">
-			{#each movies as movie}<div class="indicator">
+			{#each media as movie}<div class="indicator">
 					<div class="indicator-item badge">
 						<div
 							class="radial-progress"

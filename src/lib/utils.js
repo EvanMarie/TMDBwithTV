@@ -1,4 +1,5 @@
 import { selectedGenreName } from './store';
+import { fetchData } from './fetchData';
 
 let currentColorIndex = 0;
 let colors = ['#5c0233', '#4a025c', '#1c025c', '#02475c', '#025c3e', '#a64c03'];
@@ -50,15 +51,21 @@ export function closeModal(selectedMedia) {
 }
 
 export function loadMedia(
-	fetchFunction,
+	dataType,
+	endpoint,
 	mediaArray,
 	filter,
 	selectedGenre,
 	queryParameters = '',
 	searchQuery = ''
 ) {
+	if (typeof fetchData !== 'function') {
+		console.error('fetchData is not a function, it is a:', typeof fetchData);
+		return;
+	}
+
 	const genreQuery = selectedGenre ? `&with_genres=${selectedGenre}` : '';
-	fetchFunction(filter, queryParameters + genreQuery, searchQuery).then((results) => {
+	fetchData(dataType, endpoint, queryParameters + genreQuery, searchQuery).then((results) => {
 		mediaArray = results.map((media) => {
 			const rating = Math.round(media.vote_average * 10);
 			return {
